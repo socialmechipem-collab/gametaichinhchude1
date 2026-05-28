@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trò Chơi: Cửa Hàng Của Bé</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #f0f9ff;
+            background-image: radial-gradient(#bae6fd 2px, transparent 2px);
+            background-size: 30px 30px;
+        }
+
+        /* Tiền tệ CSS */
+        .money-note {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            box-shadow: 2px 4px 6px rgba(0,0,0,0.15);
+        }
+        .money-note:hover {
+            transform: scale(1.05) translateY(-2px);
+            box-shadow: 2px 6px 10px rgba(0,0,0,0.2);
+        }
+        .money-note:active {
+            transform: scale(0.95);
+        }
+
+        /* Màu sắc các mệnh giá mô phỏng tiền VNĐ */
+        .note-500k { background: linear-gradient(135deg, #4da1a9, #8bd0d4); border: 2px solid #377d84; color: #fff;}
+        .note-200k { background: linear-gradient(135deg, #d37c68, #eeb9a6); border: 2px solid #b35f4d; color: #fff;}
+        .note-100k { background: linear-gradient(135deg, #5c9e5e, #96c997); border: 2px solid #3e733f; color: #fff;}
+        .note-50k  { background: linear-gradient(135deg, #b8547e, #d48ba9); border: 2px solid #8f3e5f; color: #fff;}
+        .note-20k  { background: linear-gradient(135deg, #437ba8, #86b1d1); border: 2px solid #2b5578; color: #fff;}
+        .note-10k  { background: linear-gradient(135deg, #bda335, #dfcc7a); border: 2px solid #917c24; color: #fff;}
+        .note-5k   { background: linear-gradient(135deg, #3d58a8, #7a8ec9); border: 2px solid #283c7a; color: #fff;}
+        .note-2k   { background: linear-gradient(135deg, #7a7a7a, #a6a6a6); border: 2px solid #575757; color: #fff;}
+        .note-1k   { background: linear-gradient(135deg, #876846, #c2a688); border: 2px solid #5c452b; color: #fff;}
+        .note-500  { background: linear-gradient(135deg, #b54a4a, #d47f7f); border: 2px solid #822e2e; color: #fff;}
+        .note-100  { background: linear-gradient(135deg, #6c4f7a, #9d87a8); border: 2px solid #4a3454; color: #fff;}
+
+        /* Hoa văn trang trí trên tờ tiền */
+        .money-inner {
+            border: 1px dashed rgba(255,255,255,0.6);
+            height: 100%;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 4px 6px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .speech-bubble {
+            position: relative;
+            background: #fff;
+            border-radius: .4em;
+            border: 3px solid #fbcfe8;
+        }
+        .speech-bubble:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 20%;
+            width: 0;
+            height: 0;
+            border: 12px solid transparent;
+            border-top-color: #fff;
+            border-bottom: 0;
+            border-left: 0;
+            margin-left: -6px;
+            margin-bottom: -12px;
+        }
+        .speech-bubble:before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 20%;
+            width: 0;
+            height: 0;
+            border: 15px solid transparent;
+            border-top-color: #fbcfe8;
+            border-bottom: 0;
+            border-left: 0;
+            margin-left: -7px;
+            margin-bottom: -15px;
+        }
+
+        .pop-in {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .wiggle {
+            animation: wiggle 0.5s ease-in-out infinite alternate;
+        }
+        @keyframes wiggle {
+            0% { transform: rotate(-5deg); }
+            100% { transform: rotate(5deg); }
+        }
+
+        /* Scrollbar custom */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px;}
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px;}
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-pink-400 to-purple-500 text-white p-3 shadow-md z-10 flex justify-between items-center">
+        <h1 class="text-3xl font-black tracking-wide drop-shadow-md text-yellow-200">
+            <i class="fa-solid fa-store mr-2"></i> Cửa Hàng Của Bé
+        </h1>
+        <div class="flex items-center gap-4 bg-white/20 px-4 py-1.5 rounded-full font-bold text-lg">
+            <span>Tiền trong Khay:</span>
+            <span id="tray-total-display" class="text-yellow-200 text-2xl">0đ</span>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col md:flex-row overflow-hidden gap-4 p-4">
+        
+        <!-- Cột Trái: Cửa Hàng -->
+        <section class="flex-1 bg-white rounded-3xl shadow-xl border-4 border-blue-200 flex flex-col overflow-hidden">
+            <div class="bg-blue-100 p-3 border-b-4 border-blue-200 text-center">
+                <h2 class="text-2xl font-bold text-blue-700">Kệ Hàng Hoá 🧸</h2>
+                <p class="text-blue-500 text-sm font-semibold">Bé hãy nhấp vào món đồ muốn mua nhé!</p>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-4">
+                <div id="store-shelves" class="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Sản phẩm sẽ được render bằng JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Cột Phải: Quầy Thanh Toán & Ví Tiền -->
+        <section class="w-full md:w-[450px] lg:w-[500px] flex flex-col gap-4">
+            
+            <!-- NPC Khu Vực -->
+            <div class="bg-white rounded-3xl shadow-lg border-4 border-pink-200 p-4 flex gap-4 items-end relative">
+                <div class="w-24 h-24 bg-pink-100 rounded-full flex items-center justify-center border-4 border-pink-300 shadow-inner flex-shrink-0">
+                    <span class="text-6xl wiggle">👩‍🍳</span>
+                </div>
+                <div class="flex-1">
+                    <div id="npc-dialog" class="speech-bubble p-3 text-gray-700 font-bold text-sm shadow-md">
+                        Chào bé yêu! Bé muốn mua gì nào? Hãy chọn món đồ bên kệ hàng nhé!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Giỏ hàng hiện tại & Khay tiền -->
+            <div class="bg-white flex-1 rounded-3xl shadow-lg border-4 border-yellow-200 p-4 flex flex-col">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-xl font-bold text-yellow-600">Quầy Thanh Toán 🛒</h3>
+                    <button onclick="clearTray()" class="bg-red-100 text-red-600 hover:bg-red-200 px-3 py-1 rounded-full text-sm font-bold transition">
+                        <i class="fa-solid fa-rotate-left mr-1"></i> Lấy lại tiền
+                    </button>
+                </div>
+                
+                <!-- Món hàng đang chọn -->
+                <div id="selected-item-zone" class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-3 flex items-center gap-4 mb-4 h-24">
+                    <div class="text-gray-400 font-semibold w-full text-center">Bé chưa chọn món đồ nào cả!</div>
+                </div>
+
+                <!-- Khay đựng tiền -->
+                <div class="flex-1 bg-yellow-50 rounded-xl border-2 border-yellow-300 p-3 relative flex flex-col">
+                    <div class="text-center text-yellow-700 font-bold mb-2 text-sm">Tiền bé đưa cho cô:</div>
+                    <div id="payment-tray" class="flex-1 flex flex-wrap content-start gap-2 overflow-y-auto">
+                        <!-- Tiền thanh toán vào đây -->
+                    </div>
+                </div>
+
+                <button onclick="checkout()" id="btn-checkout" class="w-full mt-4 bg-green-500 hover:bg-green-600 text-white font-black text-xl py-3 rounded-xl shadow-lg transition-transform active:scale-95 disabled:bg-gray-400 disabled:opacity-50">
+                    THANH TOÁN NGAY <i class="fa-solid fa-check-circle ml-2"></i>
+                </button>
+            </div>
+
+            <!-- Ví tiền của bé -->
+            <div class="bg-indigo-600 rounded-3xl shadow-lg border-4 border-indigo-800 p-4 pb-6">
+                <h3 class="text-white font-bold mb-3 flex items-center justify-between">
+                    <span><i class="fa-solid fa-wallet mr-2"></i> Ví Tiền Của Bé</span>
+                    <span class="text-indigo-200 text-xs font-normal">Nhấp để lấy tiền</span>
+                </h3>
+                <div id="wallet-notes" class="grid grid-cols-3 gap-2">
+                    <!-- Tiền trong ví render bằng JS -->
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- Modal Thông Báo / Đố Vui Tính Tiền Thừa -->
+    <div id="overlay" class="fixed inset-0 bg-black/60 z-40 hidden flex items-center justify-center p-4">
+        <div id="modal" class="bg-white rounded-3xl p-6 md:p-8 shadow-2xl max-w-lg w-full transform scale-0 transition-transform duration-300 text-center border-8 border-yellow-400 relative">
+            <button onclick="closeModal()" class="absolute -top-4 -right-4 bg-red-500 text-white w-10 h-10 rounded-full font-bold text-xl hover:bg-red-600 shadow-md">X</button>
+            
+            <div id="modal-icon" class="text-7xl mb-4">🎉</div>
+            <h2 id="modal-title" class="text-3xl font-black text-blue-600 mb-2">Tiêu đề</h2>
+            <p id="modal-desc" class="text-xl text-gray-700 font-semibold mb-6">Mô tả nội dung</p>
+            
+            <!-- Khu vực Quiz Tính Tiền -->
+            <div id="quiz-zone" class="hidden">
+                <p class="text-lg font-bold text-purple-600 mb-4 bg-purple-100 p-2 rounded-lg">Bé đưa dư tiền rồi. Cô cần trả lại bé bao nhiêu tiền thừa nhỉ?</p>
+                <div id="quiz-options" class="flex flex-col gap-3">
+                    <!-- Options JS render -->
+                </div>
+            </div>
+
+            <div id="modal-actions" class="mt-6 hidden">
+                <button onclick="closeModal()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full text-xl shadow-lg w-full">
+                    Tiếp Tục Chơi
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA ---
+        const products = [
+            { id: 1, name: 'Cục tẩy', price: 3000, icon: '🧽', category: 'Đồ dùng học tập' },
+            { id: 2, name: 'Thước kẻ', price: 5000, icon: '📏', category: 'Đồ dùng học tập' },
+            { id: 3, name: 'Compa', price: 5000, icon: '📐', category: 'Đồ dùng học tập' },
+            { id: 4, name: 'Bút mực', price: 7000, icon: '🖊️', category: 'Đồ dùng học tập' },
+            { id: 5, name: 'Vở viết', price: 7500, icon: '📓', category: 'Đồ dùng học tập' },
+            { id: 6, name: 'Cái Mũ', price: 34900, icon: '🧢', category: 'Đồ chơi & Đồ dùng' },
+            { id: 7, name: 'Gấu Bông', price: 99000, icon: '🧸', category: 'Đồ chơi & Đồ dùng' },
+            { id: 8, name: 'Váy Công Chúa', price: 129000, icon: '👗', category: 'Đồ chơi & Đồ dùng' },
+            { id: 9, name: 'Ba lô', price: 199900, icon: '🎒', category: 'Đồ chơi & Đồ dùng' },
+            { id: 10, name: 'Xe đạp', price: 499500, icon: '🚲', category: 'Đồ chơi & Đồ dùng' }
+        ];
+
+        // Mệnh giá tiền (VNĐ)
+        const denominations = [
+            { value: 500000, class: 'note-500k', label: '500.000đ' },
+            { value: 200000, class: 'note-200k', label: '200.000đ' },
+            { value: 100000, class: 'note-100k', label: '100.000đ' },
+            { value: 50000,  class: 'note-50k',  label: '50.000đ' },
+            { value: 20000,  class: 'note-20k',  label: '20.000đ' },
+            { value: 10000,  class: 'note-10k',  label: '10.000đ' },
+            { value: 5000,   class: 'note-5k',   label: '5.000đ' },
+            { value: 2000,   class: 'note-2k',   label: '2.000đ' },
+            { value: 1000,   class: 'note-1k',   label: '1.000đ' },
+            { value: 500,    class: 'note-500',  label: '500đ' },
+            { value: 100,    class: 'note-100',  label: '100đ' }
+        ];
+
+        // --- STATE ---
+        let selectedProduct = null;
+        let trayMoney = []; // Mảng chứa các object tiền trong khay
+        let expectedChange = 0;
+
+        // --- UTILS ---
+        const formatMoney = (amount) => {
+            return new Intl.NumberFormat('vi-VN').format(amount) + 'đ';
+        };
+
+        const speakNpc = (text) => {
+            const dialog = document.getElementById('npc-dialog');
+            dialog.classList.remove('pop-in');
+            void dialog.offsetWidth; // trigger reflow
+            dialog.innerText = text;
+            dialog.classList.add('pop-in');
+        };
+
+        // --- RENDER FUNCTIONS ---
+        const renderStore = () => {
+            const shelf = document.getElementById('store-shelves');
+            shelf.innerHTML = '';
+            
+            products.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-2xl border-2 border-gray-200 p-3 shadow-sm hover:shadow-lg hover:border-blue-400 cursor-pointer transition transform hover:-translate-y-1 text-center flex flex-col items-center group';
+                card.onclick = () => selectItem(p);
+                
+                card.innerHTML = `
+                    <div class="text-5xl mb-2 group-hover:scale-110 transition">${p.icon}</div>
+                    <div class="font-bold text-gray-800 text-sm md:text-base">${p.name}</div>
+                    <div class="bg-yellow-100 text-yellow-800 font-black px-3 py-1 rounded-full text-sm mt-2">
+                        ${formatMoney(p.price)}
+                    </div>
+                `;
+                shelf.appendChild(card);
+            });
+        };
+
+        const renderWallet = () => {
+            const wallet = document.getElementById('wallet-notes');
+            wallet.innerHTML = '';
+            
+            denominations.forEach(d => {
+                const note = document.createElement('div');
+                note.className = `money-note ${d.class} h-12 md:h-14 rounded cursor-pointer relative overflow-hidden`;
+                note.onclick = () => addMoneyToTray(d);
+                
+                note.innerHTML = `
+                    <div class="money-inner">
+                        <span class="text-[10px] md:text-xs leading-none self-start">${d.value >= 1000 ? d.value/1000 + 'k' : d.value}</span>
+                        <span class="text-sm md:text-base font-black text-center absolute inset-0 flex items-center justify-center">${formatMoney(d.value)}</span>
+                        <span class="text-[10px] md:text-xs leading-none self-end rotate-180">${d.value >= 1000 ? d.value/1000 + 'k' : d.value}</span>
+                    </div>
+                `;
+                wallet.appendChild(note);
+            });
+        };
+
+        const renderTray = () => {
+            const tray = document.getElementById('payment-tray');
+            const totalDisplay = document.getElementById('tray-total-display');
+            
+            tray.innerHTML = '';
+            let total = 0;
+            
+            trayMoney.forEach((d, index) => {
+                total += d.value;
+                const note = document.createElement('div');
+                note.className = `money-note ${d.class} w-[48%] h-12 rounded cursor-pointer relative overflow-hidden pop-in`;
+                note.title = "Nhấn để thu lại ví";
+                note.onclick = () => removeMoneyFromTray(index);
+                
+                note.innerHTML = `
+                    <div class="money-inner">
+                        <span class="text-xs font-black text-center absolute inset-0 flex items-center justify-center">${formatMoney(d.value)}</span>
+                    </div>
+                `;
+                tray.appendChild(note);
+            });
+
+            totalDisplay.innerText = formatMoney(total);
+        };
+
+        const updateSelectedProductZone = () => {
+            const zone = document.getElementById('selected-item-zone');
+            if (!selectedProduct) {
+                zone.innerHTML = `<div class="text-gray-400 font-semibold w-full text-center">Bé chưa chọn món đồ nào cả!</div>`;
+                return;
+            }
+
+            zone.innerHTML = `
+                <div class="text-5xl bg-white p-2 rounded-xl shadow">${selectedProduct.icon}</div>
+                <div class="flex-1">
+                    <div class="font-black text-xl text-gray-800">${selectedProduct.name}</div>
+                    <div class="text-red-500 font-bold text-lg">Giá: ${formatMoney(selectedProduct.price)}</div>
+                </div>
+            `;
+            zone.classList.add('pop-in');
+            setTimeout(() => zone.classList.remove('pop-in'), 300);
+        };
+
+        // --- ACTIONS ---
+        const selectItem = (product) => {
+            selectedProduct = product;
+            updateSelectedProductZone();
+            
+            // Lời thoại giáo dục
+            if (product.price <= 10000) {
+                speakNpc(`"${product.name}" có giá trị nhỏ (${formatMoney(product.price)}). Bé chỉ cần dùng các tờ tiền mệnh giá nhỏ hoặc tiền lẻ thôi nhé!`);
+            } else if (product.price >= 100000) {
+                speakNpc(`Chà, chiếc "${product.name}" này có giá trị cao đó (${formatMoney(product.price)}). Bé sẽ cần dùng các tờ tiền mệnh giá lớn để mua nha!`);
+            } else {
+                speakNpc(`Bé đã chọn "${product.name}" với giá ${formatMoney(product.price)}. Bé hãy lấy tiền từ ví bỏ vào khay thanh toán nhé!`);
+            }
+        };
+
+        const addMoneyToTray = (denomination) => {
+            if (!selectedProduct) {
+                speakNpc("Bé ơi, hãy chọn món đồ muốn mua trước khi lấy tiền nhé!");
+                return;
+            }
+            if(trayMoney.length >= 10) {
+                 speakNpc("Khay tiền đầy rồi bé ơi! Bé dùng tiền mệnh giá lớn hơn xem sao.");
+                 return;
+            }
+            trayMoney.push(denomination);
+            renderTray();
+        };
+
+        const removeMoneyFromTray = (index) => {
+            trayMoney.splice(index, 1);
+            renderTray();
+        };
+
+        const clearTray = () => {
+            trayMoney = [];
+            renderTray();
+            speakNpc("Cô đã trả lại tiền vào ví cho bé rồi đó.");
+        };
+
+        const getTrayTotal = () => {
+            return trayMoney.reduce((sum, d) => sum + d.value, 0);
+        };
+
+        // --- LOGIC THANH TOÁN ---
+        const checkout = () => {
+            if (!selectedProduct) {
+                speakNpc("Bé chưa chọn mua món đồ nào mà!");
+                return;
+            }
+
+            const total = getTrayTotal();
+            const price = selectedProduct.price;
+
+            if (total === 0) {
+                speakNpc("Bé chưa đưa tiền cho cô kìa!");
+                return;
+            }
+
+            if (total < price) {
+                const thieu = price - total;
+                speakNpc(`Bé đưa chưa đủ tiền rồi. Còn thiếu ${formatMoney(thieu)} nữa bé nhé!`);
+                
+                showModal('Chưa đủ tiền!', `Bé cần đưa thêm ${formatMoney(thieu)}`, '❌', false);
+            } else if (total === price) {
+                speakNpc(`Tuyệt vời! Bé đã trả số tiền cực kỳ chính xác. Cảm ơn bé đã mua ${selectedProduct.name}!`);
+                showModal('Mua hàng thành công!', `Bé đã trả đúng ${formatMoney(price)}. Bé thật thông minh!`, '🎉', true);
+                resetGameAfterSuccess();
+            } else {
+                // Đưa dư tiền -> Tính tiền thừa
+                expectedChange = total - price;
+                speakNpc(`Bé đưa dư rồi nhé. Bé đưa cô ${formatMoney(total)}, món đồ giá ${formatMoney(price)}. Đố bé cô phải thối lại bao nhiêu tiền?`);
+                setupChangeQuiz(expectedChange);
+            }
+        };
+
+        // --- QUIZ TIỀN THỪA ---
+        const setupChangeQuiz = (correctAnswer) => {
+            // Tạo 3 đáp án (1 đúng, 2 sai)
+            let wrong1 = correctAnswer + (Math.random() > 0.5 ? 5000 : 1000);
+            let wrong2 = correctAnswer - (Math.random() > 0.5 ? 2000 : 5000);
+            if (wrong2 <= 0) wrong2 = correctAnswer + 10000;
+
+            const options = [correctAnswer, wrong1, wrong2].sort(() => Math.random() - 0.5);
+
+            const quizOptionsContainer = document.getElementById('quiz-options');
+            quizOptionsContainer.innerHTML = '';
+
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full bg-indigo-50 hover:bg-indigo-100 border-2 border-indigo-200 text-indigo-700 font-bold py-3 px-4 rounded-xl text-xl transition';
+                btn.innerText = formatMoney(opt);
+                btn.onclick = () => checkQuizAnswer(opt, correctAnswer);
+                quizOptionsContainer.appendChild(btn);
+            });
+
+            document.getElementById('modal-title').innerText = 'Đố bé tính toán!';
+            document.getElementById('modal-title').className = 'text-3xl font-black text-purple-600 mb-2';
+            document.getElementById('modal-desc').innerText = '';
+            document.getElementById('modal-icon').innerText = '🤔';
+            
+            document.getElementById('quiz-zone').classList.remove('hidden');
+            document.getElementById('modal-actions').classList.add('hidden');
+            
+            document.getElementById('overlay').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('modal').classList.remove('scale-0');
+                document.getElementById('modal').classList.add('scale-100');
+            }, 10);
+        };
+
+        const checkQuizAnswer = (selectedAmount, correctAmount) => {
+            if (selectedAmount === correctAmount) {
+                // Đúng
+                document.getElementById('quiz-zone').classList.add('hidden');
+                document.getElementById('modal-title').innerText = 'Chính xác hoàn toàn!';
+                document.getElementById('modal-title').className = 'text-3xl font-black text-green-600 mb-2';
+                document.getElementById('modal-desc').innerText = `Cô đã trả lại bé ${formatMoney(correctAmount)} tiền thừa. Cảm ơn bé!`;
+                document.getElementById('modal-icon').innerText = '🎊';
+                document.getElementById('modal-actions').classList.remove('hidden');
+                speakNpc(`Hoan hô! Bé tính quá giỏi. Cô trả lại bé ${formatMoney(correctAmount)} nhé!`);
+                resetGameAfterSuccess();
+            } else {
+                // Sai
+                const msg = `Ôi, chưa đúng rồi. Bé nhận ${formatMoney(selectedAmount)} là bị ${selectedAmount > correctAmount ? 'dư' : 'thiếu'} đó. Bé thử tính lại xem!`;
+                document.getElementById('modal-desc').innerText = msg;
+                document.getElementById('modal-desc').classList.add('text-red-500');
+                document.getElementById('modal-icon').innerText = '😅';
+                speakNpc(msg);
+                
+                // Hiệu ứng rung sai
+                const modal = document.getElementById('modal');
+                modal.classList.add('animate-ping');
+                setTimeout(() => modal.classList.remove('animate-ping'), 300);
+            }
+        };
+
+        // --- MODAL UTILS ---
+        const showModal = (title, desc, icon, showAction = true) => {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-title').className = `text-3xl font-black mb-2 ${title.includes('thành công') ? 'text-green-600' : 'text-red-500'}`;
+            document.getElementById('modal-desc').innerText = desc;
+            document.getElementById('modal-desc').className = 'text-xl text-gray-700 font-semibold mb-6';
+            document.getElementById('modal-icon').innerText = icon;
+            
+            document.getElementById('quiz-zone').classList.add('hidden');
+            
+            if(showAction) {
+                document.getElementById('modal-actions').classList.remove('hidden');
+            } else {
+                document.getElementById('modal-actions').classList.add('hidden');
+                setTimeout(closeModal, 2500); // Tự đóng nếu là thông báo lỗi
+            }
+
+            document.getElementById('overlay').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('modal').classList.remove('scale-0');
+                document.getElementById('modal').classList.add('scale-100');
+            }, 10);
+        };
+
+        const closeModal = () => {
+            document.getElementById('modal').classList.remove('scale-100');
+            document.getElementById('modal').classList.add('scale-0');
+            setTimeout(() => {
+                document.getElementById('overlay').classList.add('hidden');
+            }, 300);
+        };
+
+        const resetGameAfterSuccess = () => {
+            trayMoney = [];
+            selectedProduct = null;
+            renderTray();
+            updateSelectedProductZone();
+        };
+
+        // --- INITIALIZE ---
+        window.onload = () => {
+            renderStore();
+            renderWallet();
+            updateSelectedProductZone();
+        };
+    </script>
+</body>
+</html>
